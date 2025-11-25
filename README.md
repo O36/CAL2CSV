@@ -21,14 +21,15 @@ Finally i learned how to make a github account so i could opensource this projec
 - add system to fix reoccuring appointments (currently only exports first instance)
 - fix duration counter to display 24 hours on whole day events
 - remove seconds variable from the date.time output
-- add location to the export
+- add eventlocation to the export
+- add verbose flag to show debugging
 
 # Dependencies:
+- python3
 - icalendar (for parsing .ics files)
 - openpyxl (for writing .xlsx files)
 - pytz (for timezone handling)
 pip install icalendar openpyxl pytz
-- python3
 
 # Usage:
 Run the script followed by the location of the .ics file.
