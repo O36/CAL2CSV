@@ -5,6 +5,11 @@ import calendar
 import csv
 from datetime import datetime, timedelta, date
 
+# Check for verbose flag
+verbose = '-v' in sys.argv
+if verbose:
+    sys.argv.remove('-v') # Remove it so it doesn't interfere with other argument parsing
+
 filename = sys.argv[1]
 filename_noext = filename[:-4]
 file_extension = str(sys.argv[1])[-3:]
@@ -43,13 +48,15 @@ def open_cal():
                 if component.get('TRANSP') == 'TRANSPARENT' or component.get('TRANSP') == None:
                     continue #skip event that have not been accepted
                 if component.get('SUMMARY') == None: continue #skip blank items
-                print(f"Processing: {component.get('SUMMARY')}") 
+                if verbose:
+                    print(f"Processing: {component.get('SUMMARY')}") 
                 event.summary = component.get('SUMMARY')
                 if hasattr(component.get('dtstart'), 'dt'):
                     event.start = component.get('dtstart').dt
                 if hasattr(component.get('dtend'), 'dt'):
                     event.end = component.get('dtend').dt
-                    print(f" Start: {event.start}, End: {event.end}")
+                    if verbose:
+                        print(f" Start: {event.start}, End: {event.end}")
 #                now = date.today()
 #                req_date_from = date(now.year, int(month), 1)
 #                last_day = calendar.monthrange(now.year, int(month))[1]
@@ -66,7 +73,8 @@ def open_cal():
                 event.description = component.get('DESCRIPTION', '') # Extract description, empty string if blank
                 events.append(event)
             f.close()
-            print(f"\nTotal events added: {len(events)}")
+            if verbose:
+                print(f"\nTotal events added: {len(events)}")
         else:
             print("You entered ", filename, ". ")
             print(file_extension.upper(), " is not a valid file format. Looking for an ICS file.")
@@ -150,9 +158,11 @@ open_cal() # Sort events chronologically (Google Calendar exports aren always in
 sortedevents=sorted(events, key=lambda obj: (obj.start.replace(tzinfo=None) if isinstance(obj.start, datetime) else datetime.combine(obj.start, datetime.min.time())))
 #sort_by_weekly(sortedevents)
 sort_by_yearly(sortedevents)
-print(f"Number of weeks created: {len(weeks)}")
+if verbose:
+    print(f"Number of weeks created: {len(weeks)}")
 for i, week in enumerate(weeks):
-    print(f"Week {i+1}: {len(week)} events")
+    if verbose:
+        print(f"Week {i+1}: {len(week)} events")
 csv_write(filename)
 
 from pyexcel.cookbook import merge_all_to_a_book

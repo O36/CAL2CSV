@@ -22,7 +22,7 @@ Finally i learned how to make a github account so i could opensource this projec
 - fix duration counter to display 24 hours on whole day events
 - remove seconds variable from the date.time output
 - add eventlocation to the export
-- add verbose flag to show debugging
+✅ add verbose flag to show debugging
 
 # Dependencies:
 - python3
