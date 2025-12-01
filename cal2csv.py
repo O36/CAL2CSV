@@ -13,7 +13,8 @@ if verbose:
 filename = sys.argv[1]
 filename_noext = filename[:-4]
 file_extension = str(sys.argv[1])[-3:]
-headers = ('Week', 'Summary', 'Start Time', 'End Time', 'Hours', 'Description')
+headers = ('Week', 'Summary', 'Start Time', 'End Time', 'Hours', 'Location', 'Description')
+
 if len(sys.argv) < 3:
     print("No month provided, proceeding with current month")
     month = date.today().month
@@ -27,6 +28,7 @@ class CalendarEvent:
     end = ''
     hours = ''
     description = ''
+    location = ''
 
     def __init__(self, name):
         self.name = name
@@ -71,6 +73,7 @@ def open_cal():
                 hours = secs/3600
                 event.hours = hours + minutes
                 event.description = component.get('DESCRIPTION', '') # Extract description, empty string if blank
+                event.location = component.get('LOCATION', '') # Extract location details, empty string if blank
                 events.append(event)
             f.close()
             if verbose:
@@ -109,7 +112,7 @@ def csv_write(icsfile):
                 wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
                 wr.writerow(headers)
                 for week_num, event in year_events:
-                    values = (week_num, event.summary, event.start, event.end, event.hours, event.description)
+                    values = (week_num, event.summary, event.start, event.end, event.hours, event.location, event.description)
                     wr.writerow(values)
     except IOError:
         print("Could not open file! Please close Excel!")
