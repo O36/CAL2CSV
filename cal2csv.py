@@ -112,7 +112,10 @@ def csv_write(icsfile):
                 wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
                 wr.writerow(headers)
                 for week_num, event in year_events:
-                    values = (week_num, event.summary, event.start, event.end, event.hours, event.location, event.description)
+                    # Format start and end times to strip seconds
+                    start_formatted = event.start.strftime('%Y-%m-%d %H:%M') if isinstance(event.start, datetime) else str(event.start)
+                    end_formatted = event.end.strftime('%Y-%m-%d %H:%M') if isinstance(event.end, datetime) else str(event.end)
+                    values = (week_num, event.summary, start_formatted, end_formatted, event.hours, event.location, event.description)
                     wr.writerow(values)
     except IOError:
         print("Could not open file! Please close Excel!")
