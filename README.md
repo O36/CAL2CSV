@@ -19,7 +19,7 @@ Finally i learned how to make a github account so i could opensource this projec
 # Roadmap:
 - add option to include start and enddates to be included in the report
 - add system to fix reoccuring appointments (currently only exports first instance)
-- fix duration counter to display 24 hours on whole day events
+- fix duration counter to display 24 hours on whole day events ✅
 - remove seconds variable from the date.time output ✅
 - add eventlocation to the export ✅
 - add verbose flag to show debugging git ✅

@@ -68,10 +68,16 @@ def open_cal():
 #                    print(f"  Date check passed! event_start_date={event_start_date}, looking for month {month}")
 #                    continue
                 event.hours = event.end - event.start
-                secs = event.hours.seconds
-                minutes = ((secs/60)%60)/60.0
-                hours = secs/3600
-                event.hours = hours + minutes
+                # Check if this is an all-day event (date objects instead of datetime objects)
+                if isinstance(event.start, date) and not isinstance(event.start, datetime):
+                    # All-day event: calculate hours as days * 24
+                    event.hours = event.hours.days * 24
+                else:
+                    # Timed event: calculate from seconds
+                    secs = event.hours.seconds
+                    minutes = ((secs/60)%60)/60.0
+                    hours = secs/3600
+                    event.hours = hours + minutes
                 event.description = component.get('DESCRIPTION', '') # Extract description, empty string if blank
                 event.location = component.get('LOCATION', '') # Extract location details, empty string if blank
                 events.append(event)
