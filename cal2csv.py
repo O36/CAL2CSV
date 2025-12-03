@@ -4,6 +4,7 @@ from icalendar import Calendar
 import calendar
 import csv
 from datetime import datetime, timedelta, date
+from dateutil.rrule import rrulestr
 
 # Check for verbose flag
 verbose = '-v' in sys.argv
@@ -36,6 +37,65 @@ class CalendarEvent:
 weeks = []
 events = []
 
+def expand_recurring_event(component):
+    """Expand a recurring event into individual occurrences"""
+    occurrences = []
+
+    # Check if event has recurrence rule
+    if not component.get('RRULE'):
+        return None # not a recurring event
+
+    # Get the recurrence rule
+    rrule_str = component.get('RRULE').to_ical().decode('utf-8')
+    dtstart = component.get('dtstart').dt
+
+    # Get event duration
+    if component.get('dtend'):
+        dtend = component.get('dtend').dt
+        duration = dtend - dtstart
+    else:
+        duration = timedelta(hours=1) # Default 1 hour if no end time
+
+    # Get exception dates (cancelled occurences)
+    exdates = []
+    if component.get('EXDATE'):
+        exdate = component.get('EXDATE')
+        if isinstance(exdate, list):
+            for ex in exdate:
+                exdates.extend(ex.dts)
+        else:
+            exdates = exdate.dts
+
+    # Parse and expand the recurrence rule
+    # Limit to reasonable number (e.g., 10 years from start)
+    try:
+        if isinstance(dtstart, datetime):
+            until = dtstart.replace(tzinfo=None) + timedelta(days=3650) # 10 years
+            dtstart_clean = dtstart.replace(tzinfo=None)
+        else:
+            until = dtstart + timedelta(days=3650)
+            dtstart_clean = dtstart
+
+        rrule = rrulestr(rrule_str, dtstart=dtstart_clean)
+
+        for occurence_start in rrule:
+            if occurrence_start > until:
+                break
+
+            # Check if this occurence is in exception dates
+            if any(occurrence_start.date() == ex.dt.date() if hasattr(ex.dt, 'date') else occurence_start.date() == ex.dt for ex in exdates):
+                if verbose:
+                    print(f" Skipping exception date: {occurrence_start}")
+                continue
+
+            occurence_end = occurrence_start + duration
+            occurrences.append((occurrence_start, occurrence_end))
+
+    except Exception as e:
+        if verbose:
+            print(f" Warning: Could not parse RRULE: {e}")
+        return None
+    return occurrences
 
 def open_cal():
     if os.path.isfile(filename):
@@ -44,43 +104,76 @@ def open_cal():
             f = open(sys.argv[1], 'rb')
             gcal = Calendar.from_ical(f.read())
             for component in gcal.walk():
-                event = CalendarEvent("event")
+                if component.name != "VEVENT":
+                    continue
+
+#                event = CalendarEvent("event")
                 if component.get('STATUS') != "CONFIRMED":
                     continue
                 if component.get('TRANSP') == 'TRANSPARENT' or component.get('TRANSP') == None:
-                    continue #skip event that have not been accepted
-                if component.get('SUMMARY') == None: continue #skip blank items
-                if verbose:
-                    print(f"Processing: {component.get('SUMMARY')}") 
-                event.summary = component.get('SUMMARY')
-                if hasattr(component.get('dtstart'), 'dt'):
-                    event.start = component.get('dtstart').dt
-                if hasattr(component.get('dtend'), 'dt'):
-                    event.end = component.get('dtend').dt
+                    continue # skip event that have not been accepted
+                if component.get('SUMMARY') == None:
+                    continue # skip blank items
+
+                summary = component.get('SUMMARY')
+                description = component.get('DESCRIPTION', '')
+                location = component.get('LOCATION', '')
+
+                # Check if this is a recurring event
+                occurrences = expand_recurring_event(component)
+
+                if occurrences:
+                    # Recurring event - create an event for each occurrence
                     if verbose:
-                        print(f" Start: {event.start}, End: {event.end}")
-#                now = date.today()
-#                req_date_from = date(now.year, int(month), 1)
-#                last_day = calendar.monthrange(now.year, int(month))[1]
-#                req_date_to = date(now.year, int(month), last_day)
-#                event_start_date = event.start.date() if isinstance(event.start, datetime) else event.start
-#                if event_start_date < req_date_from or event_start_date > req_date_to:
-#                    print(f"  Date check passed! event_start_date={event_start_date}, looking for month {month}")
-#                    continue
-                event.hours = event.end - event.start
-                # Check if this is an all-day event (date objects instead of datetime objects)
-                if isinstance(event.start, date) and not isinstance(event.start, datetime):
-                    # All-day event: calculate hours as days * 24
-                    event.hours = event.hours.days * 24
+                        print(f"Processing recurring: {summary} ({len(occurrences)} occurrences)")
+
+                    for occur_start, occur_end in occurrences:
+                        event = CalendarEvent("event")
+                        event.summary = summary
+                        event.start = occur_start
+                        event.end = occur_end
+                        event.description = description
+                        event.location = location
+
+                        # Calculate duration per event
+                        event.hours = event.end - event.start
+                        if isinstance(event.start, date) and not isinstance(event.start, datetime):
+                            event.hours = event.hours.days * 24
+                        else:
+                            secs = event.hours.seconds
+                            minutes = ((secs/60)%60)/60.0
+                            hours = secs/3600
+                            event.hours = hours + minutes
+
+                        events.append(event)
                 else:
-                    # Timed event: calculate from seconds
-                    secs = event.hours.seconds
-                    minutes = ((secs/60)%60)/60.0
-                    hours = secs/3600
-                    event.hours = hours + minutes
-                event.description = component.get('DESCRIPTION', '') # Extract description, empty string if blank
-                event.location = component.get('LOCATION', '') # Extract location details, empty string if blank
-                events.append(event)
+                    # Non-recurring event - process normally
+                    if verbose:
+                        print(f"Processing: {summary}")
+                    
+                    event = CalendarEvent("event")
+                    event.summary = summary
+                    event.description
+                    event.location = location
+
+                    if hasattr(component.get('dtstart'), 'dt'):
+                        event.start = component.get('dtstart').dt
+                    if hasattr(component.get('dtend'), 'dt'):
+                        event.end = component.get('dtend').dt
+                        if verbose:
+                            print(f" Start: {event.start}, End: {event.end}")
+
+                    event.hours = event.end - event.start
+                    if isinstance(event.start, date) and not isinstance(event.start, datetime):
+                        event.hours = event.hours.days * 24
+                    else:
+                        secs = event.hours.seconds
+                        minutes = ((secs/60)%60)/60.0
+                        hours = secs/3600
+                        event.hours = hours + minutes
+
+                    events.append(event)
+
             f.close()
             if verbose:
                 print(f"\nTotal events added: {len(events)}")
@@ -89,8 +182,8 @@ def open_cal():
             print(file_extension.upper(), " is not a valid file format. Looking for an ICS file.")
             exit(0)
     else:
-        print("I can't find the file ", filename, ".")
-        print("Please enter an ics file located in the same folder as this script.")
+        print("File ", filename, " not found.")
+        print("Please enter a valid ics-file.")
         exit(0)
 
 
