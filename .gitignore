@@ -1,0 +1,14 @@
+# Python
+*.pyc
+__pycache__/
+*.pyenv
+
+# Generated files
+*.xlsx
+*.csv
+*.ics
+
+# Editor files
+.vscode/
+*.swp
+*.swo
