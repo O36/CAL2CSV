@@ -69,6 +69,7 @@ def expand_recurring_event(component):
     # Parse and expand the recurrence rule
     # Limit to reasonable number (e.g., 10 years from start)
     try:
+        # Always work with timezone-naive datetimes for consistency
         if isinstance(dtstart, datetime):
             until = dtstart.replace(tzinfo=None) + timedelta(days=3650) # 10 years
             dtstart_clean = dtstart.replace(tzinfo=None)
@@ -76,25 +77,38 @@ def expand_recurring_event(component):
             until = dtstart + timedelta(days=3650)
             dtstart_clean = dtstart
 
+        # Remove any UNTIL parameter from RRULE to avoid timezone conflicts
+        # We'll apply our own limit with the 'until' variable
+        if 'UNTIL=' in rrule_str:
+            # Strip out UNTIL parameter - we have our own limit
+            import re
+            rrule_str = re.sub(r';UNTIL=[^;]+', '', rrule_str)
+            rrule_str = re.sub(r'UNTIL=[^;]+;?', '', rrule_str)
+
         rrule = rrulestr(rrule_str, dtstart=dtstart_clean)
 
-        for occurence_start in rrule:
-            if occurrence_start > until:
+        for occurrence_start in rrule:
+            # Convert both to datetime for comparison
+            occurrence_dt = occurrence_start if isinstance(occurrence_start, datetime) else datetime.combine(occurrence_start, datetime.min.time())
+            until_dt = until if isinstance(until, datetime) else datetime.combine(until, datetime.min.time())
+            
+            if occurrence_dt > until_dt:
                 break
 
             # Check if this occurence is in exception dates
-            if any(occurrence_start.date() == ex.dt.date() if hasattr(ex.dt, 'date') else occurence_start.date() == ex.dt for ex in exdates):
+            if any(occurrence_start.date() == ex.dt.date() if hasattr(ex.dt, 'date') else occurrence_start.date() == ex.dt for ex in exdates):
                 if verbose:
                     print(f" Skipping exception date: {occurrence_start}")
                 continue
 
-            occurence_end = occurrence_start + duration
+            occurrence_end = occurrence_start + duration
             occurrences.append((occurrence_start, occurrence_end))
 
     except Exception as e:
         if verbose:
             print(f" Warning: Could not parse RRULE: {e}")
         return None
+
     return occurrences
 
 def open_cal():
@@ -153,7 +167,7 @@ def open_cal():
                     
                     event = CalendarEvent("event")
                     event.summary = summary
-                    event.description
+                    event.description = description
                     event.location = location
 
                     if hasattr(component.get('dtstart'), 'dt'):
@@ -264,10 +278,10 @@ sortedevents=sorted(events, key=lambda obj: (obj.start.replace(tzinfo=None) if i
 #sort_by_weekly(sortedevents)
 sort_by_yearly(sortedevents)
 if verbose:
-    print(f"Number of weeks created: {len(weeks)}")
-for i, week in enumerate(weeks):
+    print(f"Number of years created: {len(weeks)}")
+for year, year_events in weeks:
     if verbose:
-        print(f"Week {i+1}: {len(week)} events")
+        print(f"Year {year}: {len(year_events)} events")
 csv_write(filename)
 
 from pyexcel.cookbook import merge_all_to_a_book

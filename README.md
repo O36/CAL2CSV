@@ -1,44 +1,104 @@
 # CAL2CSV
-Convertor .ics file to .xlsx file (.ics > .csv > .xlsx)
+Convert '.ics' calendar files to '.xlsx' spreadsheets ('.ics' > '.csv' > '.xlsx')
 
-# About this project:
-I have been using my calendar to keep track of certain events as they happened instead of planning events that were going to happen.
-Assuming this would be needed for several weeks, maybe months. This ended up spanning several years instead.
-In order to be able to analyse how often these events happened i needed to be able to extract all the data from the calendar;
-unfortunately google in all its "wisdom" decided to remove the option to export a calendar to CSV, opting for .ics instead.
+## About this project:
+I've been using my calendar to keep track of events as they happen rather than for planning future events.
+What i assumed would span a few weeks, maybe months ended up covering several years.
+To analyze the frequency and patterns of these events, i needed to extract all the calendar data.
+Unfortunately google removed the option to export calendars to CSV, only offering '.ics' format instead.
+This tool bridges that gap.
 
-I based my code on the work of erikcox (https://github.com/erikcox/ical2csv), thanks for giving me a starting off point erik!
+**credits:** This project is based on [erikcox's ical2csv] (https://github.com/erikcox/ical2csv). Thanks for the starting point, Erik!
 
-First i fixed the code up to the point where it would no longer spit out errors.
-After that i updated the code to fix the exporter to .xlsx so it would actually generate a .xlsx with content.
-Thirdly i reworked the code so it would include the description of the appointment.
-Fourthly i reworked the code so it would give me a sheet per year, instead of per week (my .ics file supplied me with 472 weeks) and supply me with a column displaying the weeknumber of that year.
+## Features
+✅ Converts '.ics' files to '.xlsx' Excel spreadsheets
+✅ Groups events by year (one sheet per year)
+✅ Includes week numbers for easy reference
+✅ Extracts event summaries, descriptions, locations, start/end times, and duration
+✅ Handles recurring appointments (expands them into individual occurrences)
+✅ Properly calculates duration for all-day events (24h+)
+✅ removes seconds from timestamps for a cleaner output
+✅ Optional verbose mode for debugging
 
-Finally i learned how to make a github account so i could opensource this project as i figured other people might have a use for it.
+## Installation
 
-# Roadmap:
-- add option to include start and enddates to be included in the report
-- add system to fix reoccuring appointments (currently only exports first instance) ✅
-- fix duration counter to display 24 hours on whole day events ✅
-- remove seconds variable from the date.time output ✅
-- add eventlocation to the export ✅
-- add verbose flag to show debugging git ✅
-- fix verbose debug output (weeks and events per week calculation)
+### Requierments
 
-# Dependencies:
-- python3
-- icalendar (for parsing .ics files)
-- openpyxl (for writing .xlsx files)
-- pytz (for timezone handling)
-> pip install icalendar openpyxl pytz
+- Python 3.x
+- Required packages:
+    - 'icalendar' (for parsing '.ics' files)
+    - 'pyexcel' (for creating '.xlsx' files)
+    - 'python-dateutil' (for recurring event expansion)
 
-# Usage:
-Run the script followed by the location of the .ics file.
-The script will run and spit out an .xlsx file.
+### Install Dependencies
+'''bash
+pip install icalendar pyexcel pyexcel-xlsx python-dateutil
+'''
 
-Example: extract full calendar to xlsx
->    python cal2csv.py MyCalendar.ics
+## Usage
 
-Example: extract full calendar to xlsx with verbose debugging
->    python cal2csv.py MyCalendar.ics -v
+### Basic Usage
+
+Extract your entire calendar to an Excel file:
+'''bash
+python cal2csv.py MyCalendar.ics
+'''
+
+This creates 'MyCalendar.xlsx' with one sheet per year.
+
+### Verbose Mode
+
+Run with debugging output to see what's being processed:
+'''bash
+python cal2csv.py MyCalendar.ics -v
+'''
+
+## Output Format
+
+The generated Excel file contains:
+
+| Week | Summary | Start Time | End Time | Hours | Location | Description |
+|------|---------|------------|----------|-------|----------|-------------|
+| 42 | Team Meeting | 2024-10-15 14:00 | 2024-10-15 15:30 | 1.5 | Room 301 | Quarterly review |
+
+- **One sheet per year** (e.g., "2023", "2024", "2025")
+- **Week numbers** using ISO week numbering
+- **Clean timestamps** without seconds or timezone info
+- **Accurate durations** including proper handling of all-day events
+
+## Roadmap
+
+- [❌] Add date range filtering (start/end dates)
+- [✅] Handle recurring appointments 
+- [✅] Fix duration counter for all-day events
+- [✅] Remove seconds from timestamps
+- [✅] Add event location to export
+- [✅] Add verbose debugging flag
+- [✅] Fix verbose output for years/events count
+
+## How to get your .ics file
+
+### Google Calendar
+
+1. Go to [Google Calendar](https://calendar.google.com)
+2. Click the gear icon → Settings
+3. Select your calendar from the left sidebar
+4. Scroll to "Integrate calendar"
+5. Click the "Export" button or copy the "Secret address in iCal format"
+
+## Contributing
+
+Contributions are welcome! Feel free to:
+- Report bugs via Issues
+- Suggest features
+- Submit pull requests
+
+## License
+
+MIT License - see [LICENSE](LICENSE) file for details
+
+## Acknowledgments
+
+- Original concept: [erikcox/ical2csv](https://github.com/erikcox/ical2csv)
+- Built during late-night troubleshooting sessions with Claude! 🤝
 
