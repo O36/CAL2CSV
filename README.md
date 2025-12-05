@@ -97,7 +97,7 @@ The generated Excel file contains:
 
 ## Roadmap
 
-- [✅] Add date range filtering (start/end dates)
+- [✅] Add date range filtering (start/end dates)  
        (also implemented excludemode (end date < start date)
 - [✅] Handle recurring appointments 
 - [✅] Fix duration counter for all-day events
