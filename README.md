@@ -53,6 +53,35 @@ Run with debugging output to see what's being processed:
 python cal2csv.py MyCalendar.ics -v
 ```
 
+### Date Range Filtering
+
+Filter events to a specific data range:
+```bash
+# Events from a start date onwards
+python cal2csv.py MyCalendar.ics -s 2023-01-01
+
+# Events up to an end date
+python cal2csv.py MyCalendar.ics -e 2024-12-31
+
+# Events within a specific range
+python cal2csv.py MyCalendar.ics -s 2023-01-01 -e 2024-12-31
+```
+
+### Exclusion Mode (Inverted Date Range)
+
+When the end date is before the start date, the filter inverts - it excludes events within that ranke and keeps everything outside it:
+```bash
+# Export everything EXCEPT events between 2020 and 2026
+python cal2csv.py MyCalendar.ics -s 2025-12-31 -e 2020-01-01
+```
+
+### Combining Flags
+
+All flags are optional and can be combined:
+```bash
+python cal2csv.py MyCalendar.ics -v -s 2023-01-01 -e 2024-12-31
+```
+
 ## Output Format
 
 The generated Excel file contains:
@@ -68,7 +97,8 @@ The generated Excel file contains:
 
 ## Roadmap
 
-- [❌] Add date range filtering (start/end dates)
+- [✅] Add date range filtering (start/end dates)
+       (also implemented excludemode (end date < start date)
 - [✅] Handle recurring appointments 
 - [✅] Fix duration counter for all-day events
 - [✅] Remove seconds from timestamps

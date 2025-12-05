@@ -3,24 +3,58 @@ import os.path
 from icalendar import Calendar
 import calendar
 import csv
+import glob
 from datetime import datetime, timedelta, date
 from dateutil.rrule import rrulestr
+from pyexcel.cookbook import merge_all_to_a_book
 
 # Check for verbose flag
 verbose = '-v' in sys.argv
 if verbose:
     sys.argv.remove('-v') # Remove it so it doesn't interfere with other argument parsing
 
+# Check for start date flag
+start_date = None   # Need to set this before flagcheck, otherwise the code will crash if the flag wasn't given
+if '-s' in sys.argv:
+    idx = sys.argv.index('-s')
+    if idx + 1 < len(sys.argv):
+        try:
+            start_date = datetime.strptime(sys.argv[idx + 1], '%Y-%m-%d').date()
+            sys.argv.pop(idx)   # removes flag
+            sys.argv.pop(idx)   # removes date value
+        except ValueError:
+            print("Error: Invalid start date format. use YYYY-MM-DD")
+            exit(1)
+
+# Check for end date flag
+end_date = None # Need to set this before flagcheck, otherwise the code will crash if the flag wasn't given
+if '-e' in sys.argv:
+    idx = sys.argv.index('-e')
+    if idx + 1 < len(sys.argv):
+        try:
+            end_date = datetime.strptime(sys.argv[idx + 1], '%Y-%m-%d').date()
+            sys.argv.pop(idx)   # removes flag
+            sys.argv.pop(idx)   # removes date value
+        except ValueError:
+            print("Error: Invalid end date format. use YYYY-MM-DD")
+            exit(1)
+
+# Display date range info
+if start_date or end_date:
+    if start_date and end_date and end_date < start_date:
+        print(f"Excluding events between {end_date} and {start_date}")
+    else:
+        date_range_msg = "Filtering events"
+        if start_date:
+            date_range_msg += f" from {start_date}"
+        if end_date:
+            date_range_msg += f" to {end_date}"
+        print(date_range_msg)
+
 filename = sys.argv[1]
 filename_noext = filename[:-4]
 file_extension = str(sys.argv[1])[-3:]
 headers = ('Week', 'Summary', 'Start Time', 'End Time', 'Hours', 'Location', 'Description')
-
-if len(sys.argv) < 3:
-    print("No month provided, proceeding with current month")
-    month = date.today().month
-else:
-    month = sys.argv[2]
 
 class CalendarEvent:
     """Calendar event class"""
@@ -76,7 +110,6 @@ def expand_recurring_event(component):
         else:
             until = dtstart + timedelta(days=3650)
             dtstart_clean = dtstart
-
         # Remove any UNTIL parameter from RRULE to avoid timezone conflicts
         # We'll apply our own limit with the 'until' variable
         if 'UNTIL=' in rrule_str:
@@ -111,6 +144,37 @@ def expand_recurring_event(component):
 
     return occurrences
 
+def filter_by_date_range(events_list):
+    """Filter events by date range if specified"""
+    if not start_date and not end_date:
+        return events_list  # No filtering needed
+
+    # Check for exlusion dates (end date before start date)
+    exclude_mode = False
+    if start_date and end_date and end_date < start_date:
+        exclude_mode = True
+        if verbose:
+            print(f"Excluding events between {end_date} and {start_date}")
+
+    filtered = []
+    for event in events_list:
+        # Convert event start to date for comparison
+        event_date = event.start.date() if isinstance(event.start, datetime) else event.start
+
+        if exclude_mode:
+            # Exclude mode: keep events OUTSIDE the range
+            if event_date < end_date or event_date > start_date:
+                filtered.append(event)
+        else:
+            # Normale mode: keep events INSIDE the range
+            if start_date and event_date < start_date:
+                continue
+            if end_date and event_date > end_date:
+                continue
+            filtered.append(event)
+
+    return filtered
+
 def open_cal():
     if os.path.isfile(filename):
         if file_extension == 'ics':
@@ -121,7 +185,6 @@ def open_cal():
                 if component.name != "VEVENT":
                     continue
 
-#                event = CalendarEvent("event")
                 if component.get('STATUS') != "CONFIRMED":
                     continue
                 if component.get('TRANSP') == 'TRANSPARENT' or component.get('TRANSP') == None:
@@ -185,7 +248,6 @@ def open_cal():
                         minutes = ((secs/60)%60)/60.0
                         hours = secs/3600
                         event.hours = hours + minutes
-
                     events.append(event)
 
             f.close()
@@ -199,23 +261,6 @@ def open_cal():
         print("File ", filename, " not found.")
         print("Please enter a valid ics-file.")
         exit(0)
-
-
-#def csv_write(icsfile):
-#    try:
-#        count = 0
-#        for week in weeks:
-#            count = count + 1
-#            csvfile = "week" + str(count) + ".csv"
-#            with open(csvfile, 'w') as myfile:
-#                wr = csv.writer(myfile, quoting=csv.QUOTE_ALL)
-#                wr.writerow(headers)
-#                for event in week:
-#                    values = (event.summary, event.start, event.end, event.hours, event.description)
-#                    wr.writerow(values)
-#    except IOError:
-#        print("Could not open file! Please close Excel!")
-#        exit(0)
 
 def csv_write(icsfile):
     try:
@@ -233,26 +278,6 @@ def csv_write(icsfile):
     except IOError:
         print("Could not open file! Please close Excel!")
         exit(0)
-
-#def sort_by_weekly(events):
-#    week = []
-#    end_of_week = None
-#    for event in events:
-#        # Convert event.start to datetime for comparison and strip timezone
-#        event_start_dt = event.start if isinstance(event.start, datetime) else datetime.combine(event.start, datetime.min.time())
-#        event_start_dt = event_start_dt.replace(tzinfo=None)
-#        
-#        if end_of_week == None or event_start_dt > end_of_week:
-#            if week:  # Only append if week has events
-#                weeks.append(week)
-#            week = [event]  # Start new week with this event
-#            # Calculate new end_of_week
-#            end_of_week = event_start_dt - timedelta(days=event_start_dt.weekday()) + timedelta(days=6)
-#            end_of_week = end_of_week.replace(hour=23, minute=59)
-#        else:
-#            week.append(event)
-#    if week:  # Don't forget the last week
-#        weeks.append(week)
 
 def sort_by_yearly(events):
     years = {}
@@ -273,9 +298,15 @@ def sort_by_yearly(events):
         weeks.append((year, years[year]))
 
 
-open_cal() # Sort events chronologically (Google Calendar exports aren always in order)
+open_cal()
+# Apply date range filter if specified
+if start_date or end_date:
+    events = filter_by_date_range(events)
+    if verbose:
+        print(f"Events after date filtering: {len(events)}")
+
+# Sort events chronologically (Google Calendar exports aren't always in order)
 sortedevents=sorted(events, key=lambda obj: (obj.start.replace(tzinfo=None) if isinstance(obj.start, datetime) else datetime.combine(obj.start, datetime.min.time())))
-#sort_by_weekly(sortedevents)
 sort_by_yearly(sortedevents)
 if verbose:
     print(f"Number of years created: {len(weeks)}")
@@ -284,17 +315,8 @@ for year, year_events in weeks:
         print(f"Year {year}: {len(year_events)} events")
 csv_write(filename)
 
-from pyexcel.cookbook import merge_all_to_a_book
-import glob
-
 merge_all_to_a_book(glob.glob("./*.csv"), filename_noext+".xlsx")
 print("Done, your file: "+filename_noext+".xlsx")
-
-#count = 0
-#for week in weeks:
-#    count = count + 1
-#    csvfile = "week" + str(count) + ".csv"
-#    os.remove(csvfile)
 
 count = 0
 for year, year_events in weeks:
