@@ -11,14 +11,14 @@ This tool bridges that gap.
 **credits:** This project is based on [erikcox's ical2csv] (https://github.com/erikcox/ical2csv). Thanks for the starting point, Erik!
 
 ## Features
-✅ Converts '.ics' files to '.xlsx' Excel spreadsheets
-✅ Groups events by year (one sheet per year)
-✅ Includes week numbers for easy reference
-✅ Extracts event summaries, descriptions, locations, start/end times, and duration
-✅ Handles recurring appointments (expands them into individual occurrences)
-✅ Properly calculates duration for all-day events (24h+)
-✅ removes seconds from timestamps for a cleaner output
-✅ Optional verbose mode for debugging
+✅ Converts '.ics' files to '.xlsx' Excel spreadsheets  
+✅ Groups events by year (one sheet per year)  
+✅ Includes week numbers for easy reference  
+✅ Extracts event summaries, descriptions, locations, start/end times, and duration  
+✅ Handles recurring appointments (expands them into individual occurrences)  
+✅ Properly calculates duration for all-day events (24h+)  
+✅ removes seconds from timestamps for a cleaner output  
+✅ Optional verbose mode for debugging  
 
 ## Installation
 
@@ -31,27 +31,27 @@ This tool bridges that gap.
     - 'python-dateutil' (for recurring event expansion)
 
 ### Install Dependencies
-'''bash
+```bash
 pip install icalendar pyexcel pyexcel-xlsx python-dateutil
-'''
+```
 
 ## Usage
 
 ### Basic Usage
 
 Extract your entire calendar to an Excel file:
-'''bash
+```bash
 python cal2csv.py MyCalendar.ics
-'''
+```
 
 This creates 'MyCalendar.xlsx' with one sheet per year.
 
 ### Verbose Mode
 
 Run with debugging output to see what's being processed:
-'''bash
+```bash
 python cal2csv.py MyCalendar.ics -v
-'''
+```
 
 ## Output Format
 
