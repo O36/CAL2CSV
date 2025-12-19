@@ -315,7 +315,7 @@ for year, year_events in weeks:
         print(f"Year {year}: {len(year_events)} events")
 csv_write(filename)
 
-merge_all_to_a_book(glob.glob("./*.csv"), filename_noext+".xlsx")
+merge_all_to_a_book(sorted(glob.glob("./*.csv")), filename_noext+".xlsx")
 print("Done, your file: "+filename_noext+".xlsx")
 
 count = 0
